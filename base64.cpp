@@ -1,4 +1,5 @@
 #include "base64.h"
+#include <ctype.h>
 
 const uint8_t BAD = 1;
 
@@ -48,5 +49,59 @@ int base64_encode(const uint8_t* input, int input_len, char** output, int* outpu
 }
 
 int base64_decode(const char* input, int input_len, uint8_t** output, int* output_len) {
+	if (input_len % 4 != 0) {
+		return -1;
+	}
+	int len = input_len / 4 * 3;
+	int padding = 0;
+	if (input[input_len - 1] == '=') {
+		padding++;
+	}
+	if (input[input_len - 2] == '=') {
+		padding++;
+	}
+	len = len - padding;
+	*output_len = len;
+	uint8_t* buf = (uint8_t*)malloc(len);
+	*output = buf;
+
+	int m = input_len;
+	if (padding > 0) {
+		m = m - 4;
+	}
+	char d1, d2, d3, d4;
+	for (int i = 0; i < m; i = i + 4) {
+		d1 = DECODE64(input[0]);
+		d2 = DECODE64(input[1]);
+		d3 = DECODE64(input[2]);
+		d4 = DECODE64(input[3]);
+		if ((char)(d1 | d2 | d3 | d4) < 0) {
+			return -1;
+		}
+		input = input + 4;
+		*buf++ = ((d1 << 2) | (d2 >> 4));
+		*buf++ = (((d2 << 4) & 0xF0) | (d3 >> 2));
+		*buf++ = (((d3 << 6) & 0xC0) | d4);
+	}
+	switch(padding) {
+		case 1:
+			d1 = DECODE64(input[0]);
+			d2 = DECODE64(input[1]);
+			d3 = DECODE64(input[2]);
+			if ((char)(d1 | d2 | d3) < 0) {
+				return -1;
+			}
+			*buf++ = ((d1 << 2) | (d2 >> 4));
+			*buf++ = (((d2 << 4) & 0xF0) | (d3 >> 2));
+			break;
+		case 2:
+			d1 = DECODE64(input[0]);
+			d2 = DECODE64(input[1]);
+			if ((char)(d1 | d2) < 0) {
+				return -1;
+			}
+			*buf++ = ((d1 << 2) | (d2 >> 4));
+			break;
+	}
     return 0;
 }
