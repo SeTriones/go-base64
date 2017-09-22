@@ -24,15 +24,23 @@ func Encode(input []byte) string {
 
 func Decode(input string) ([]byte, error) {
 	strSlice := []byte(input)
-	var output *C.uint8_t
-	var outputLen C.int
-	cret := C.base64_decode((*C.char)(unsafe.Pointer(&strSlice[0])), C.int(len(strSlice)), &output, &outputLen)
+	inputLen := len(input)
+	if inputLen%4 != 0 {
+		return nil, ErrBadFormat
+	}
+	outputLen := inputLen / 4 * 3
+	for idx := 1; idx <= 2; idx++ {
+		if input[inputLen-idx] == 0x3d {
+			outputLen = outputLen - 1
+		}
+	}
+	outbuf := make([]byte, outputLen, outputLen)
+	cret := C.base64_decode((*C.char)(unsafe.Pointer(&strSlice[0])), C.int(inputLen), (*C.uint8_t)(unsafe.Pointer(&outbuf[0])), C.int(outputLen))
 	ret := int(cret)
 	if ret < 0 {
 		return nil, ErrBadFormat
 	} else {
-		defer C.free(unsafe.Pointer(output))
-		return C.GoBytes(unsafe.Pointer(output), outputLen), nil
+		return outbuf, nil
 	}
 
 }

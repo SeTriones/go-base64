@@ -48,22 +48,10 @@ int base64_encode(const uint8_t* input, int input_len, char** output, int* outpu
     return 0;
 }
 
-int base64_decode(const char* input, int input_len, uint8_t** output, int* output_len) {
-	if (input_len % 4 != 0) {
-		return -1;
-	}
-	int len = input_len / 4 * 3;
-	int padding = 0;
-	if (input[input_len - 1] == '=') {
-		padding++;
-	}
-	if (input[input_len - 2] == '=') {
-		padding++;
-	}
-	len = len - padding;
-	*output_len = len;
-	uint8_t* buf = (uint8_t*)malloc(len);
-	*output = buf;
+int base64_decode(const char* input, int input_len, uint8_t* output, int output_len) {
+	int padding = output_len % 3 == 0 ? 0 : 3 - (output_len % 3);
+	int len = output_len;
+	uint8_t* buf = output;
 
 	int m = input_len;
 	if (padding > 0) {
